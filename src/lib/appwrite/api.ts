@@ -3,11 +3,6 @@ import { ID, Query } from "appwrite";
 import { account, appwriteConfig, avatars, databases } from "./config";
 
 
-interface AppwriteError extends Error {
-    code?: number; // Optional because not all errors have a code
-}
-
-
 
 export async function createUserAccount(user: INewUser) {
     try {
@@ -59,48 +54,46 @@ export async function saveUserToDb(user: {
     }
 }
 
-export async function signInAccount(user: { email: string; password: string; }) {
+// ============================== SIGN IN
+export async function signInAccount(user: { email: string; password: string }) {
     try {
-        // Check if there is already an active session
-        const activeSession = await account.getSession('current');
-
-        if (activeSession) {
-            console.log('User is already logged in.');
-            return activeSession; // Return the existing session
-        }
-    } catch (error : unknown) {
-        const appwriteError = error as AppwriteError; 
-        if (appwriteError.code === 404) { // Error code 404 means no active session
-            try {
-                const session = await account.createEmailPasswordSession(user.email, user.password);
-                return session;
-            } catch (createSessionError) {
-                console.log('Error creating session:', createSessionError);
-            }
-        } else {
-            console.log('Error checking session:', error);
-        }
+      const session = await account.createEmailPasswordSession(user.email, user.password);
+  
+      return session;
+    } catch (error) {
+      console.log(error);
     }
-}
-
+  }
+  
 
 export async function getCurrentUser() {
     try {
         const currentAccount = await account.get();
 
-        if(!currentAccount) throw Error
+        if (!currentAccount) throw Error
 
         const currentUser = await databases.listDocuments(
             appwriteConfig.databaseId,
             appwriteConfig.userCollectionId,
             [Query.equal('accountId', currentAccount.$id)]
         )
-        if(!currentUser) throw Error
+        if (!currentUser) throw Error
 
         return currentUser.documents[0]
-        
+
     } catch (error) {
         console.log(error);
-        
+
+    }
+}
+
+export async function signOutAccount() {
+    try {
+        const session = await account.deleteSession('current')
+
+        return session;
+    } catch (error) {
+        console.log(error);
+
     }
 }
